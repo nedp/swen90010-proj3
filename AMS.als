@@ -3,7 +3,7 @@ sig UserID {}
 // There is exactly one emergency userID
 one sig EmergencyUser extends UserID {}
 
-// There are three types of contacts, Friends, Insurer, and Emergeny.
+// There are three types of contacts, Friends, Insurer, and Emergency.
 // Users can give different permissions to different contact types.
 abstract sig ContactTypes {}
 one sig Friend, Insurer, Emergency extends ContactTypes {}
@@ -14,21 +14,20 @@ sig Footsteps {}
 sig BPM {}
 sig GPSLocation {}
 
-//A simple Boolean data type
+// A simple Boolean data type
 abstract sig Boolean {}
 one sig True, False extends Boolean {}
 
-
 /** The system state **/
 sig AMS {
-    //The set of current users
+    // The set of current users
     users : set UserID-EmergencyUser,
 
-    //Records each user's friend, insurer
+    // Records each user's friend, insurer
     friends : users->users,
     insurers : users->users,
 
-    //Records each user's relevant data
+    // Records each user's relevant data
     footsteps : users->Footsteps,
     vitals : users->BPM,
     locations : users->GPSLocation,
@@ -56,12 +55,12 @@ pred init [ams : AMS] {
 }
 
 /** Users and their social network **/
-//Create a new user
+// Create a new user
 pred CreateUser [ams, ams' : AMS, userID: one UserID] {
     userID not in ams.users
     ams'.users = ams.users + userID
 
-    //Unchanged
+    // Unchanged
     ams'.friends = ams.friends
     ams'.insurers = ams.insurers
     DataUnchanged [ams, ams']
@@ -70,12 +69,12 @@ pred CreateUser [ams, ams' : AMS, userID: one UserID] {
     ams'.locationPermissions = ams.locationPermissions
 }
 
-//Update, remove, and read insurer information for a specific user
+// Update, remove, and read insurer information for a specific user
 pred SetInsurer [ams, ams' : AMS, wearer, insurer: UserID] {
     wearer+insurer in ams.users
     ams'.insurers = ams.insurers ++ (wearer->insurer)
 
-    //Unchanged
+    // Unchanged
     ams'.users = ams.users
     ams'.friends = ams.friends
     DataUnchanged [ams, ams']
@@ -86,7 +85,7 @@ pred RemoveInsurer [ams, ams' : AMS, wearer : UserID] {
     some ams.insurers[wearer]
     ams'.insurers = ams.insurers - (wearer->UserID)
 
-    //Unchanged
+    // Unchanged
     ams'.users = ams.users
     ams'.friends = ams.friends
     DataUnchanged [ams, ams']
@@ -97,12 +96,12 @@ fun ReadInsurer [ams : AMS, wearer : UserID] : lone UserID {
     ams.insurers[wearer]
 }
 
-//Update, remove, and read friend information for a specific user
+// Update, remove, and read friend information for a specific user
 pred SetFriend [ams, ams' : AMS, wearer, friend: UserID] {
     wearer+friend in ams.users
     ams'.friends = ams.friends ++ (wearer->friend)
 
-    //Unchanged:
+    // Unchanged:
     ams'.users = ams.users
     ams'.insurers = ams.insurers
     DataUnchanged [ams, ams']
@@ -113,7 +112,7 @@ pred RemoveFriend [ams, ams' : AMS, wearer : UserID] {
     some ams.friends[wearer]
     ams'.friends = ams.friends - (wearer->UserID)
 
-    //Unchanged:
+    // Unchanged:
     ams'.users = ams.users
     ams'.insurers = ams.insurers
     DataUnchanged [ams, ams']
@@ -125,20 +124,23 @@ fun ReadFriend [ams : AMS, wearer : UserID] : lone UserID {
 }
 
 /** Data management **/
-//Update relevant data
-pred UpdateFootsteps [ams, ams' : AMS, wearer : UserID, newFootsteps : Footsteps] {
+// Update relevant data
+pred UpdateFootsteps [ams, ams' : AMS,
+                      wearer : UserID,
+                      newFootsteps : Footsteps] {
     wearer in ams.users
     ams'.footsteps = ams.footsteps ++ (wearer->newFootsteps)
 
-    //Unchanged:
+    // Unchanged:
     ams'.vitals = ams.vitals
     ams'.locations = ams.locations
     UsersUnchanged [ams, ams']
     PermissionsUnchanged [ams, ams']
 }
 
-pred ReadFootsteps [ams : AMS, wearer, reader : UserID, footstepsValue : Footsteps]
-{
+pred ReadFootsteps [ams : AMS,
+                    wearer, reader : UserID,
+                    footstepsValue : Footsteps] {
     wearer in ams.users
 
     (wearer->reader in ams.insurers
@@ -154,15 +156,14 @@ pred UpdateVitals [ams, ams' : AMS, wearer : UserID, newVitals : BPM] {
     wearer in ams.users
     ams'.vitals = ams.vitals ++ (wearer->newVitals)
 
-    //Unchanged:
+    // Unchanged:
     ams'.footsteps = ams.footsteps
     ams'.locations = ams.locations
     UsersUnchanged [ams, ams']
     PermissionsUnchanged [ams, ams']
 }
 
-pred ReadVitals [ams : AMS, wearer, reader : UserID, vitalsValue : BPM]
-{
+pred ReadVitals [ams : AMS, wearer, reader : UserID, vitalsValue : BPM] {
     wearer in ams.users
 
     ((wearer->reader in ams.insurers
@@ -175,31 +176,37 @@ pred ReadVitals [ams : AMS, wearer, reader : UserID, vitalsValue : BPM]
     vitalsValue = ams.vitals[wearer]
 }
 
-pred UpdateLocation [ams, ams' : AMS, wearer : UserID, newLocation : GPSLocation] {
+pred UpdateLocation [ams, ams' : AMS,
+                     wearer : UserID,
+                     newLocation : GPSLocation] {
     wearer in ams.users
     ams'.locations = ams.locations ++ (wearer->newLocation)
 
-    //Unchanged:
+    // Unchanged:
     ams'.footsteps = ams.footsteps
     ams'.vitals = ams.vitals
     UsersUnchanged [ams, ams']
     PermissionsUnchanged [ams, ams']
 }
 
-pred ReadLocation [ams : AMS, wearer, reader : UserID, locationValue : GPSLocation]
-{
+pred ReadLocation [ams : AMS,
+                   wearer, reader : UserID,
+                   locationValue : GPSLocation] {
     wearer in ams.users
 
-    ((wearer->reader in ams.insurers
-      && wearer->Insurer in ams.locationPermissions)
-     || (wearer->reader in ams.friends
-         && wearer->Friend in ams.locationPermissions)
-     || (reader = EmergencyUser
-         && wearer->Emergency in ams.locationPermissions))
+    ((
+        wearer->reader in ams.insurers
+        && wearer->Insurer in ams.locationPermissions
+    ) || (
+        wearer->reader in ams.friends
+        && wearer->Friend in ams.locationPermissions
+    ) || (
+        reader = EmergencyUser
+        && wearer->Emergency in ams.locationPermissions
+    ))
 
     locationValue = ams.locations[wearer]
 }
-
 
 /** Permission management **/
 
@@ -271,10 +278,34 @@ pred RemoveLocationPermission [ams, ams' : AMS,
     DataUnchanged [ams, ams']
 }
 
+/** Handling cardiac arrest **/
+pred CardiacArrestOccured [ams, ams' : AMS,
+                           wearer : UserID,
+                           wearerLocation : GPSLocation,
+                           wearerVitals : BPM] {
+    (wearer->Emergency in ams.vitalsPermissions) => (
+        ams'.locations = ams.locations ++ (wearer->wearerLocation)
+        && ams'.vitals = ams.vitals ++ (wearer->wearerVitals)
+        && ams'.footsteps = ams.footsteps
+        && UsersUnchanged [ams, ams']
+        && PermissionsUnchanged [ams, ams']
+        && EmergencyServicesContacted [wearer, wearerLocation, wearerVitals]
+    ) else (
+        UsersUnchanged [ams, ams']
+        && DataUnchanged [ams, ams']
+        && PermissionsUnchanged [ams, ams']
+        && !EmergencyServicesContacted [wearer, wearerLocation, wearerVitals]
+    )
+}
+
+
 /** Models of "external" API calls **/
-//ContactEmergency -- The external call specified in the 'Emergency' package in Assignment 1
-pred ExternalContactEmergency [wearer : UserID, wearerLocation : GPSLocation, wearerVitals : BPM] {
-    //Contact emergency services
+// ContactEmergency -- The external call specified in the 'Emergency'
+// package in Assignment 1
+pred EmergencyServicesContacted [wearer : UserID,
+                                 wearerLocation : GPSLocation,
+                                 wearerVitals : BPM] {
+    // Contact emergency services
 }
 
 /** Helper predicates **/
@@ -304,6 +335,7 @@ run CreateUser for 3
 // Creating a new user does not add any friends/insurers
 assert NoUserChange {
     all ams, ams' : AMS, userID : UserID |
-        CreateUser[ams, ams', userID] => ams.friends = ams'.friends and ams.insurers = ams'.insurers
+        CreateUser[ams, ams', userID]
+            => ams.friends = ams'.friends and ams.insurers = ams'.insurers
 }
 check NoUserChange for 3
