@@ -1,8 +1,15 @@
 /** Data types **/
 sig UserID {}
-one sig Emergency extends UserID {} //There is exactly one emergency userID
+// There is exactly one emergency userID
+one sig EmergencyUser extends UserID {}
 
-//Three types of data stored: number of foosteps, beats per minute, and location
+// There are three types of contacts, Friends, Insurer, and Emergeny.
+// Users can give different permissions to different contact types.
+abstract sig ContactTypes {}
+one sig Friend, Insurer, Emergency extends ContactTypes {}
+
+// Three types of data stored: number of foosteps, beats per minute,
+// and location
 sig Footsteps {}
 sig BPM {}
 sig GPSLocation {}
@@ -11,13 +18,13 @@ sig GPSLocation {}
 abstract sig Boolean {}
 one sig True, False extends Boolean {}
 
+
 /** The system state **/
 sig AMS {
     //The set of current users
-    users : set UserID-Emergency,
+    users : set UserID-EmergencyUser,
 
-    //Records each user's friend, insurer, and emergency services contact
-    emergency : users->Emergency,
+    //Records each user's friend, insurer
     friends : users->users,
     insurers : users->users,
 
@@ -25,13 +32,22 @@ sig AMS {
     footsteps : users->Footsteps,
     vitals : users->BPM,
     locations : users->GPSLocation,
+
+    // Records for each user the permissions given for each data type
+    // and role. Many to many.
+    footstepsPermissions : users->ContactTypes,
+    vitalsPermissions : users->ContactTypes,
+    locationsPermissions : users->ContactTypes,
 }
 {
-    //Every user has the single Emergency user as the emergency contact
-    (users->Emergency) in emergency
+    // Since every user has the single Emergency user as the
+    // emergency contact, there's no reason to have it as a relation.
 
-    //Nobody can be their own friend or insurer
+    // Nobody can be their own friend or insurer.
     all u, v : UserID | u = v implies (u->v) not in insurers+friends
+
+    // The insurer always has permissions to read footsteps.
+    all u : UserID | (u->Insurer) in footstepsPermissions
 }
 
 /** Initial state **/
@@ -58,7 +74,6 @@ pred SetInsurer [ams, ams' : AMS, wearer, insurer: UserID] {
 
     //Unchanged
     ams'.users = ams.users
-    ams'.emergency = ams.emergency
     ams'.friends = ams.friends
     DataUnchanged [ams, ams']
 }
@@ -69,7 +84,6 @@ pred RemoveInsurer [ams, ams' : AMS, wearer : UserID] {
 
     //Unchanged
     ams'.users = ams.users
-    ams'.emergency = ams.emergency
     ams'.friends = ams.friends
     DataUnchanged [ams, ams']
 }
@@ -85,7 +99,6 @@ pred SetFriend [ams, ams' : AMS, wearer, friend: UserID] {
 
     //Unchanged:
     ams'.users = ams.users
-    ams'.emergency = ams.emergency
     ams'.insurers = ams.insurers
     DataUnchanged [ams, ams']
 
@@ -97,7 +110,6 @@ pred RemoveFriend [ams, ams' : AMS, wearer : UserID] {
 
     //Unchanged:
     ams'.users = ams.users
-    ams'.emergency = ams.emergency
     ams'.insurers = ams.insurers
     DataUnchanged [ams, ams']
 }
@@ -145,27 +157,32 @@ pred ExternalContactEmergency [wearer : UserID, wearerLocation : GPSLocation, we
 }
 
 /** Helper predicates **/
-//Users and their social network are unchanged
+// Users and their social network are unchanged.
 pred UsersUnchanged [ams, ams' : AMS] {
     ams'.users = ams.users
-    ams'.emergency = ams.emergency
     ams'.friends = ams.friends
     ams'.insurers = ams.insurers
 }
 
-//Data about users isunchanged
+// Data about users isunchanged.
 pred DataUnchanged [ams, ams' : AMS] {
     ams'.footsteps = ams.footsteps
     ams'.vitals = ams.vitals
     ams'.locations = ams.locations
 }
 
+// Permissions for users are unchanged.
+pred PermissionsUnchanged [ams, ams' : AMS] {
+    ams'.footstepsPermissions = ams.footstepsPermissions
+    ams'.vitalsPermissions = ams.vitalsPermissions
+    ams'.locationsPermissions = ams.locationsPermissions
+}
+
 run CreateUser for 3
 
-//Creating a new user does not add any friends/insurers
+// Creating a new user does not add any friends/insurers
 assert NoUserChange {
     all ams, ams' : AMS, userID : UserID |
         CreateUser[ams, ams', userID] => ams.friends = ams'.friends and ams.insurers = ams'.insurers
 }
 check NoUserChange for 3
-
