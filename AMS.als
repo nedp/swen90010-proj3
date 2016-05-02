@@ -65,6 +65,9 @@ pred CreateUser [ams, ams' : AMS, userID: one UserID] {
     ams'.friends = ams.friends
     ams'.insurers = ams.insurers
     DataUnchanged [ams, ams']
+    ams'.footstepsPermissions = ams.footstepsPermissions ++ (userID->Insurer)
+    ams'.vitalsPermissions = ams.vitalsPermissions
+    ams'.locationPermissions = ams.locationPermissions
 }
 
 //Update, remove, and read insurer information for a specific user
@@ -76,6 +79,7 @@ pred SetInsurer [ams, ams' : AMS, wearer, insurer: UserID] {
     ams'.users = ams.users
     ams'.friends = ams.friends
     DataUnchanged [ams, ams']
+    PermissionsUnchanged [ams, ams']
 }
 
 pred RemoveInsurer [ams, ams' : AMS, wearer : UserID] {
@@ -86,6 +90,7 @@ pred RemoveInsurer [ams, ams' : AMS, wearer : UserID] {
     ams'.users = ams.users
     ams'.friends = ams.friends
     DataUnchanged [ams, ams']
+    PermissionsUnchanged [ams, ams']
 }
 
 fun ReadInsurer [ams : AMS, wearer : UserID] : lone UserID {
@@ -101,7 +106,7 @@ pred SetFriend [ams, ams' : AMS, wearer, friend: UserID] {
     ams'.users = ams.users
     ams'.insurers = ams.insurers
     DataUnchanged [ams, ams']
-
+    PermissionsUnchanged [ams, ams']
 }
 
 pred RemoveFriend [ams, ams' : AMS, wearer : UserID] {
@@ -112,6 +117,7 @@ pred RemoveFriend [ams, ams' : AMS, wearer : UserID] {
     ams'.users = ams.users
     ams'.insurers = ams.insurers
     DataUnchanged [ams, ams']
+    PermissionsUnchanged [ams, ams']
 }
 
 fun ReadFriend [ams : AMS, wearer : UserID] : lone UserID {
@@ -128,6 +134,7 @@ pred UpdateFootsteps [ams, ams' : AMS, wearer : UserID, newFootsteps : Footsteps
     ams'.vitals = ams.vitals
     ams'.locations = ams.locations
     UsersUnchanged [ams, ams']
+    PermissionsUnchanged [ams, ams']
 }
 
 pred UpdateVitals [ams, ams' : AMS, wearer : UserID, newVitals : BPM] {
@@ -138,6 +145,7 @@ pred UpdateVitals [ams, ams' : AMS, wearer : UserID, newVitals : BPM] {
     ams'.footsteps = ams.footsteps
     ams'.locations = ams.locations
     UsersUnchanged [ams, ams']
+    PermissionsUnchanged [ams, ams']
 }
 
 pred UpdateLocation [ams, ams' : AMS, wearer : UserID, newLocation : GPSLocation] {
@@ -148,6 +156,7 @@ pred UpdateLocation [ams, ams' : AMS, wearer : UserID, newLocation : GPSLocation
     ams'.footsteps = ams.footsteps
     ams'.vitals = ams.vitals
     UsersUnchanged [ams, ams']
+    PermissionsUnchanged [ams, ams']
 }
 
 /** Models of "external" API calls **/
