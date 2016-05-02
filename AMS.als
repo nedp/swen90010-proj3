@@ -161,6 +161,20 @@ pred UpdateVitals [ams, ams' : AMS, wearer : UserID, newVitals : BPM] {
     PermissionsUnchanged [ams, ams']
 }
 
+pred ReadVitals [ams : AMS, wearer, reader : UserID, vitalsValue : BPM]
+{
+    wearer in ams.users
+
+    ((wearer->reader in ams.insurers
+      && wearer->Insurer in ams.vitalsPermissions)
+     || (wearer->reader in ams.friends
+         && wearer->Friend in ams.vitalsPermissions)
+     || (reader = EmergencyUser
+         && wearer->Emergency in ams.vitalsPermissions))
+
+    vitalsValue = ams.vitals[wearer]
+}
+
 pred UpdateLocation [ams, ams' : AMS, wearer : UserID, newLocation : GPSLocation] {
     wearer in ams.users
     ams'.locations = ams.locations ++ (wearer->newLocation)
@@ -172,12 +186,32 @@ pred UpdateLocation [ams, ams' : AMS, wearer : UserID, newLocation : GPSLocation
     PermissionsUnchanged [ams, ams']
 }
 
+pred ReadLocation [ams : AMS, wearer, reader : UserID, locationValue : GPSLocation]
+{
+    wearer in ams.users
+
+    ((wearer->reader in ams.insurers
+      && wearer->Insurer in ams.locationPermissions)
+     || (wearer->reader in ams.friends
+         && wearer->Friend in ams.locationPermissions)
+     || (reader = EmergencyUser
+         && wearer->Emergency in ams.locationPermissions))
+
+    locationValue = ams.locations[wearer]
+}
+
+
 /** Permission management **/
 
 pred AddFootstepsPermission [ams, ams' : AMS,
                              wearer : UserID,
                              contact : ContactTypes] {
     ams'.footstepsPermissions = ams.footstepsPermissions ++ (wearer->contact)
+
+    ams'.vitalsPermissions = ams.vitalsPermissions
+    ams'.locationPermissions = ams.locationPermissions
+    UsersUnchanged [ams, ams']
+    DataUnchanged [ams, ams']
 }
 
 pred RemoveFootstepsPermission [ams, ams' : AMS,
@@ -186,6 +220,55 @@ pred RemoveFootstepsPermission [ams, ams' : AMS,
     contact != Insurer
 
     ams'.footstepsPermissions = ams.footstepsPermissions - (wearer->contact)
+
+    ams'.vitalsPermissions = ams.vitalsPermissions
+    ams'.locationPermissions = ams.locationPermissions
+    UsersUnchanged [ams, ams']
+    DataUnchanged [ams, ams']
+}
+
+pred AddVitalsPermission [ams, ams' : AMS,
+                          wearer : UserID,
+                          contact : ContactTypes] {
+    ams'.vitalsPermissions = ams.vitalsPermissions ++ (wearer->contact)
+
+    ams'.footstepsPermissions = ams.footstepsPermissions
+    ams'.locationPermissions = ams.locationPermissions
+    UsersUnchanged [ams, ams']
+    DataUnchanged [ams, ams']
+}
+
+pred RemoveVitalsPermission [ams, ams' : AMS,
+                             wearer : UserID,
+                             contact : ContactTypes] {
+    ams'.vitalsPermissions = ams.vitalsPermissions - (wearer->contact)
+
+    ams'.footstepsPermissions = ams.footstepsPermissions
+    ams'.locationPermissions = ams.locationPermissions
+    UsersUnchanged [ams, ams']
+    DataUnchanged [ams, ams']
+}
+
+pred AddLocationPermission [ams, ams' : AMS,
+                            wearer : UserID,
+                            contact : ContactTypes] {
+    ams'.locationPermissions = ams.locationPermissions ++ (wearer->contact)
+
+    ams'.footstepsPermissions = ams.footstepsPermissions
+    ams'.vitalsPermissions = ams.vitalsPermissions
+    UsersUnchanged [ams, ams']
+    DataUnchanged [ams, ams']
+}
+
+pred RemoveLocationPermission [ams, ams' : AMS,
+                               wearer : UserID,
+                               contact : ContactTypes] {
+    ams'.locationPermissions = ams.locationPermissions - (wearer->contact)
+
+    ams'.footstepsPermissions = ams.footstepsPermissions
+    ams'.vitalsPermissions = ams.vitalsPermissions
+    UsersUnchanged [ams, ams']
+    DataUnchanged [ams, ams']
 }
 
 /** Models of "external" API calls **/
