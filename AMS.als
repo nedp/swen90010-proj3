@@ -37,7 +37,7 @@ sig AMS {
     // and role. Many to many.
     footstepsPermissions : users->ContactTypes,
     vitalsPermissions : users->ContactTypes,
-    locationsPermissions : users->ContactTypes,
+    locationPermissions : users->ContactTypes,
 }
 {
     // Since every user has the single Emergency user as the
@@ -137,6 +137,19 @@ pred UpdateFootsteps [ams, ams' : AMS, wearer : UserID, newFootsteps : Footsteps
     PermissionsUnchanged [ams, ams']
 }
 
+pred ReadFootsteps [ams : AMS, wearer, reader : UserID, footstepsValue : Footsteps]
+{
+    wearer in ams.users
+
+    (wearer->reader in ams.insurers
+     || (wearer->reader in ams.friends
+         && wearer->Friend in ams.footstepsPermissions)
+     || (reader = EmergencyUser
+         && wearer->Emergency in ams.footstepsPermissions))
+
+    footstepsValue = ams.footsteps[wearer]
+}
+
 pred UpdateVitals [ams, ams' : AMS, wearer : UserID, newVitals : BPM] {
     wearer in ams.users
     ams'.vitals = ams.vitals ++ (wearer->newVitals)
@@ -157,6 +170,22 @@ pred UpdateLocation [ams, ams' : AMS, wearer : UserID, newLocation : GPSLocation
     ams'.vitals = ams.vitals
     UsersUnchanged [ams, ams']
     PermissionsUnchanged [ams, ams']
+}
+
+/** Permission management **/
+
+pred AddFootstepsPermission [ams, ams' : AMS,
+                             wearer : UserID,
+                             contact : ContactTypes] {
+    ams'.footstepsPermissions = ams.footstepsPermissions ++ (wearer->contact)
+}
+
+pred RemoveFootstepsPermission [ams, ams' : AMS,
+                                wearer : UserID,
+                                contact : ContactTypes] {
+    contact != Insurer
+
+    ams'.footstepsPermissions = ams.footstepsPermissions - (wearer->contact)
 }
 
 /** Models of "external" API calls **/
@@ -184,7 +213,7 @@ pred DataUnchanged [ams, ams' : AMS] {
 pred PermissionsUnchanged [ams, ams' : AMS] {
     ams'.footstepsPermissions = ams.footstepsPermissions
     ams'.vitalsPermissions = ams.vitalsPermissions
-    ams'.locationsPermissions = ams.locationsPermissions
+    ams'.locationPermissions = ams.locationPermissions
 }
 
 run CreateUser for 3
